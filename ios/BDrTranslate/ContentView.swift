@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var translating = false
+    @State private var useOnlineTranslation = true
     @State private var activity = "جاهز للتجربة"
 
     @State private var broadcastStatus = "لم يبدأ بث الشاشة بعد"
@@ -30,7 +31,7 @@ struct ContentView: View {
                             .font(.title).foregroundStyle(purple)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("BDr Translate").font(.title2.bold())
-                            Text("iPhone v0.3 • اختبار بث الشاشة")
+                            Text("iPhone v0.3.1 • ترجمة أونلاين")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -67,8 +68,12 @@ struct ContentView: View {
 
                     card {
                         Text("ترجمة إنجليزية ← عربية").font(.headline)
-                        Text("الصق نصًا إنجليزيًا أو اختر صورة للحوار؛ يقرأ التطبيق النص ويترجمه محليًا إن كانت اللغة مدعومة.")
+                        Text("الصق حوارًا إنجليزيًا أو اختر صورة. الترجمة عبر الإنترنت لا تحتاج تنزيل حزم اللغات.")
                             .font(.caption).foregroundStyle(.secondary)
+                        Toggle("الترجمة عبر الإنترنت (تجريبية)", isOn: $useOnlineTranslation)
+                            .tint(purple)
+                        Text("عند تفعيلها يُرسل النص إلى خدمة MyMemory الخارجية، وقد تنطبق حدود استخدام. عطّلها للترجمة المحلية.")
+                            .font(.caption2).foregroundStyle(.secondary)
                         TextEditor(text: $english)
                             .frame(height: 95)
                             .scrollContentBackground(.hidden)
@@ -191,16 +196,37 @@ struct ContentView: View {
     }
 
     private func translateEnglish() {
-        guard !english.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let source = english.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !source.isEmpty, !translating else { return }
         translating = true
-        activity = "جاري الترجمة المحلية…"
-        if translationConfig == nil {
-            translationConfig = TranslationSession.Configuration(
-                source: Locale.Language(identifier: "en"),
-                target: Locale.Language(identifier: "ar")
-            )
+        if useOnlineTranslation {
+            activity = "جاري الاتصال بسيرفر الترجمة…"
+            Task {
+                do {
+                    let result = try await OnlineTranslator.translate(source)
+                    await MainActor.run {
+                        arabic = result
+                        translating = false
+                        activity = "تمت الترجمة عبر الإنترنت"
+                        relay.send(result)
+                    }
+                } catch {
+                    await MainActor.run {
+                        translating = false
+                        activity = "فشلت الترجمة عبر الإنترنت: \\(error.localizedDescription). جرّب لاحقًا أو عطّل الخيار للترجمة المحلية."
+                    }
+                }
+            }
         } else {
-            translationConfig?.invalidate()
+            activity = "جاري الترجمة المحلية…"
+            if translationConfig == nil {
+                translationConfig = TranslationSession.Configuration(
+                    source: Locale.Language(identifier: "en"),
+                    target: Locale.Language(identifier: "ar")
+                )
+            } else {
+                translationConfig?.invalidate()
+            }
         }
     }
 
