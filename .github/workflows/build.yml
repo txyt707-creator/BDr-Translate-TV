@@ -32,13 +32,13 @@ jobs:
       - name: Archive UNSIGNED prototype (not TV-install-ready)
         run: |
           mkdir -p dist
-          zip -j dist/BDr-Translate-TV-v0.4.0-UNSIGNED-test.wgt config.xml index.html style.css app.js relay.js
+          zip -j dist/BDr-Translate-TV-v0.4.1-UNSIGNED-test.wgt config.xml index.html style.css app.js relay.js
       - name: Publish direct unsigned TV package
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view tv-v0.4.0 >/dev/null 2>&1 || gh release create tv-v0.4.0 --title "BDr Translate Samsung TV v0.4.0 - PIN-only pairing" --notes "Unsigned Tizen WGT. Sign with Samsung Partner certificate in Apps2Samsung before installation. No IP entry needed; TV discovers iPhone on same local subnet. Experimental build."
-          gh release upload tv-v0.4.0 dist/BDr-Translate-TV-v0.4.0-UNSIGNED-test.wgt --clobber
+          gh release view tv-v0.4.1 >/dev/null 2>&1 || gh release create tv-v0.4.1 --title "BDr Translate Samsung TV v0.4.1 - PIN-only pairing" --notes "Unsigned Tizen WGT. Sign with Samsung Partner certificate in Apps2Samsung before installation. No IP entry needed; TV discovers iPhone on same local subnet. Experimental build."
+          gh release upload tv-v0.4.1 dist/BDr-Translate-TV-v0.4.1-UNSIGNED-test.wgt --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: BDr-Translate-TV-UNSIGNED-prototype
