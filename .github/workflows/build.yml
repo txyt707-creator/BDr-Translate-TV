@@ -32,7 +32,7 @@ jobs:
       - name: Archive UNSIGNED prototype (not TV-install-ready)
         run: |
           mkdir -p dist
-          zip -j dist/BDr-Translate-TV-v0.2.0-UNSIGNED-test.wgt config.xml index.html style.css app.js relay.js
+          zip -j dist/BDr-Translate-TV-v0.3.0-UNSIGNED-test.wgt config.xml index.html style.css app.js relay.js
       - uses: actions/upload-artifact@v4
         with:
           name: BDr-Translate-TV-UNSIGNED-prototype
