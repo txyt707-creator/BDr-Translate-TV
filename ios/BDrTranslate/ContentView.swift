@@ -17,6 +17,7 @@ struct ContentView: View {
 
     @State private var broadcastStatus = "لم يبدأ بث الشاشة بعد"
     @State private var capturedText = ""
+    @State private var diagnostic = "جارٍ فحص مشاركة البيانات…"
     private let shared = UserDefaults(suiteName: "group.com.bdrtranslate.shared")
 
     private let purple = Color(red: 0.55, green: 0.33, blue: 0.96)
@@ -31,7 +32,7 @@ struct ContentView: View {
                             .font(.title).foregroundStyle(purple)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("BDr Translate").font(.title2.bold())
-                            Text("iPhone v0.3.1 • ترجمة أونلاين")
+                            Text("iPhone v0.3.2 • تشخيص ReplayKit")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -125,6 +126,9 @@ struct ContentView: View {
                         Text("التقاط شاشة PS5 • تجريبي").font(.headline)
                         Text("من مركز التحكم، اضغط مطولًا على تسجيل الشاشة واختر BDr Translate. قد يمنع PS Remote Play التقاط الفيديو.")
                             .font(.caption).foregroundStyle(.secondary)
+                        Text(diagnostic).font(.caption).foregroundStyle(.orange)
+                        Button("إعادة فحص اتصال البث") { refreshBroadcast() }
+                            .font(.caption).buttonStyle(.bordered)
                         Text(broadcastStatus).font(.callout)
                             .foregroundStyle(.cyan)
                         if !capturedText.isEmpty {
@@ -191,8 +195,29 @@ struct ContentView: View {
     }
 
     private func refreshBroadcast() {
-        broadcastStatus = shared?.string(forKey: "broadcastStatus") ?? "لم يبدأ بث الشاشة بعد"
-        capturedText = shared?.string(forKey: "latestRecognizedText") ?? ""
+        guard let shared else {
+            diagnostic = "فشل فتح App Groups. تحقق من توقيع AltStore وصلاحيات الإضافة."
+            broadcastStatus = "لا يمكن قراءة حالة البث من التخزين المشترك"
+            return
+        }
+        let probe = "main-\\(UUID().uuidString)"
+        shared.set(probe, forKey: "mainDiagnosticProbe")
+        guard shared.string(forKey: "mainDiagnosticProbe") == probe else {
+            diagnostic = "فشل اختبار الكتابة والقراءة في App Groups"
+            return
+        }
+        let status = shared.string(forKey: "broadcastStatus")
+        let heartbeat = shared.double(forKey: "broadcastHeartbeat")
+        let age = heartbeat > 0 ? Date().timeIntervalSince1970 - heartbeat : .infinity
+        if age < 12 {
+            diagnostic = "اتصال إضافة ReplayKit ظاهر • آخر إطار منذ \\(Int(max(0, age))) ثانية"
+        } else if let status {
+            diagnostic = "التخزين المشترك يعمل في التطبيق؛ آخر حالة من الإضافة: \\(status)"
+        } else {
+            diagnostic = "التخزين يعمل في التطبيق، لكن لا توجد بيانات من الإضافة. قد يكون App Groups غير مشترك بعد توقيع AltStore."
+        }
+        broadcastStatus = status ?? "لم تصل حالة البث من الإضافة بعد"
+        capturedText = shared.string(forKey: "latestRecognizedText") ?? ""
     }
 
     private func translateEnglish() {
