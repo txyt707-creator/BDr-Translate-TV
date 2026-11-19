@@ -1,0 +1,41 @@
+name: Build iPhone unsigned IPA
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+permissions:
+  contents: read
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          cd ios
+          xcodegen generate
+      - name: Build iPhone application (unsigned)
+        run: |
+          xcodebuild -project ios/BDrTranslate.xcodeproj \
+            -scheme BDrTranslate \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$PWD/build/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+      - name: Package unsigned IPA for signing on Windows
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/DerivedData/Build/Products/Release-iphoneos/BDrTranslate.app build/ipa/Payload/
+          cd build/ipa
+          zip -qr ../BDrTranslate-iOS-v0.1-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BDrTranslate-iOS-v0.1-UNSIGNED-IPA
+          path: build/BDrTranslate-iOS-v0.1-unsigned.ipa
+          if-no-files-found: error
