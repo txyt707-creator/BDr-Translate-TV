@@ -1,49 +1,43 @@
-(function () {
-'use strict';
-var sources=[], sentenceIndex=0, focusIndex=0;
-var sentences=['لازم نطلع من هنا قبل ما توصل الشرطة!','انتبه، فيه سيارة ورا المبنى.','يلا بسرعة، الوقت يداهمنا!','هذه ترجمة تجريبية من BDr Translate.'];
-var $=function(id){return document.getElementById(id);};
-var controls=['sources','refresh','start','hide','relayHost','relayCode','relayConnect'];
-function log(message){$('log').textContent=message;$('state').textContent=message;}
-function setSentence(){var el=$('subtitle');el.textContent='';var span=document.createElement('span');span.textContent=sentences[sentenceIndex];el.appendChild(span);}
-function focusControl(index){focusIndex=(index+controls.length)%controls.length;var el=$(controls[focusIndex]);if(el){el.focus();}}
-function showPanel(){document.body.classList.add('showpanel');focusControl(0);}
-function refresh(){
- var selector=$('sources');selector.innerHTML='';sources=[];
- if(!(window.tizen&&tizen.systeminfo)){selector.add(new Option('غير متوفر — افتح على Samsung TV',''));log('وضع المعاينة: TVWindow غير متاح');return;}
- try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(info){
-  var arr=info.connected||[];sources=arr.filter(function(s){return s.type==='HDMI';});
-  if(!sources.length){selector.add(new Option('لا توجد مداخل HDMI متصلة',''));log('لم يتم العثور على HDMI متصل — تأكد من تشغيل PS5');return;}
-  sources.forEach(function(s,i){selector.add(new Option('HDMI '+s.number+' ('+(s.isConnected?'متصل':'الحالة غير معروفة')+')',String(i)));});
-  selector.selectedIndex=0;
-  log('وجدت '+sources.length+' مداخل HDMI — اضغط يمين للانتقال إلى زر العرض، ثم OK');
- },function(e){log('فشل استعلام المداخل: '+(e.message||e.name));});}catch(e){log('تعذر استعلام المصدر: '+e.message);}
-}
+(function(){'use strict';
+var sourceList=[],chosen=0,focused=0;
+var buttons=['play','source','retry'];
+function el(id){return document.getElementById(id)}
+function status(s){el('state').textContent=s}
+function focus(n){focused=(n+buttons.length)%buttons.length;el(buttons[focused]).focus()}
+function showPanel(){document.body.classList.add('showpanel');focus(0)}
+function closePanel(){document.body.classList.remove('showpanel');el('play').blur()}
+function pickSource(){if(!sourceList.length){status('لم يتم العثور على HDMI');return}chosen=(chosen+1)%sourceList.length;el('sourceLabel').textContent='المدخل المحدد: HDMI '+sourceList[chosen].number;showHDMI()}
 function showHDMI(){
- var num=$('sources').value,src=sources[Number(num)];
- if(num===''||!src){log('اختر HDMI صالحًا أولًا');return;}
- if(!(window.tizen&&tizen.tvwindow)){log('TVWindow غير متاح');return;}
+ var src=sourceList[chosen];
+ if(!src||!(window.tizen&&tizen.tvwindow)){status('تعذر تحديد مدخل HDMI');return}
  try{tizen.tvwindow.setSource(src,function(){
-  try{tizen.tvwindow.show(function(){document.body.classList.add('live');document.body.classList.remove('showpanel');log('HDMI نشط — راقب صورة السوني والترجمة');},function(err){log('فشل عرض HDMI: '+(err.message||err.name));},['0%','0%','100%','100%'],'MAIN','BEHIND');}catch(ex){log('خطأ عرض: '+ex.message);}
- },function(err){log('فشل اختيار HDMI: '+(err.message||err.name));});}catch(e){log('خطأ المصدر: '+e.message);}
+  try{tizen.tvwindow.show(function(){document.body.classList.add('live');status('HDMI '+src.number);closePanel()},function(e){status('فشل عرض HDMI: '+(e.message||e.name))},['0%','0%','100%','100%'],'MAIN','BEHIND')}catch(e){status('خطأ العرض: '+e.message)}
+ },function(e){status('تعذر تشغيل HDMI: '+(e.message||e.name))})}catch(e){status('خطأ HDMI: '+e.message)}
 }
-function nextSource(direction){
- var el=$('sources');if(!el.options.length)return;
- el.selectedIndex=(el.selectedIndex+direction+el.options.length)%el.options.length;
- log('المدخل المحدد: '+el.options[el.selectedIndex].text);
+function refresh(){
+ if(!(window.tizen&&tizen.systeminfo)){el('sourceLabel').textContent='تجربة معاينة — يحتاج تلفزيون Samsung';return}
+ try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(info){
+  var all=info.connected||[];
+  sourceList=all.filter(function(s){return s.type==='HDMI'});
+  if(!sourceList.length){el('sourceLabel').textContent='شغّل PS5 وتأكد من HDMI';return}
+  // Prefer the connected HDMI source, or previous working HDMI 2.
+  var match=sourceList.findIndex(function(s){return s.isConnected});
+  chosen=match>=0?match:0;
+  el('sourceLabel').textContent='المدخل المحدد: HDMI '+sourceList[chosen].number;
+ },function(e){status('خطأ فحص المداخل: '+(e.message||e.name))})}catch(e){status('خطأ: '+e.message)}
 }
-$('refresh').addEventListener('click',refresh);
-$('start').addEventListener('click',showHDMI);
-$('hide').addEventListener('click',function(){document.body.classList.remove('showpanel');});
-controls.forEach(function(id,i){$(id).addEventListener('focus',function(){focusIndex=i;});});
+el('play').onclick=showHDMI;
+el('source').onclick=pickSource;
+el('retry').onclick=function(){if(window.BDrRelay)window.BDrRelay.retry()};
+buttons.forEach(function(id,n){el(id).addEventListener('focus',function(){focused=n})});
 document.addEventListener('keydown',function(e){
- var key=e.keyCode,open=document.body.classList.contains('showpanel');
- if(e.target && e.target.tagName==='INPUT')return;
- if(key===10009||key===27){e.preventDefault();if(open){document.body.classList.remove('showpanel');}else{showPanel();}return;}
- if(!open){if(key===13){e.preventDefault();showPanel();}else if(key===38||key===40){e.preventDefault();sentenceIndex=(sentenceIndex+(key===38?1:-1)+sentences.length)%sentences.length;setSentence();}return;}
- if(key===37||key===39){e.preventDefault();focusControl(focusIndex+(key===39?1:-1));return;}
- if(key===38||key===40){e.preventDefault();if(focusIndex===0){nextSource(key===40?1:-1);}else{focusControl(focusIndex+(key===40?1:-1));}return;}
- if(key===13){e.preventDefault();if(focusIndex===0){focusControl(2);}else if($(controls[focusIndex]).click){$(controls[focusIndex]).click();}return;}
+ var code=e.keyCode,open=document.body.classList.contains('showpanel');
+ if(code===10009||code===27){e.preventDefault();if(open)closePanel();else showPanel();return}
+ if(!open){if(code===13){e.preventDefault();showPanel()}return}
+ if(code===37||code===38){e.preventDefault();focus(focused-1)}
+ if(code===39||code===40){e.preventDefault();focus(focused+1)}
+ if(code===13){e.preventDefault();el(buttons[focused]).click()}
 });
-setSentence();showPanel();refresh();
+refresh();setTimeout(function(){focus(0)},100);
+window.BDrTV={showHDMI:showHDMI,closePanel:closePanel,status:status};
 })();
