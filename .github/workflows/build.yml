@@ -4,7 +4,7 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   prototype:
     runs-on: ubuntu-latest
@@ -33,6 +33,12 @@ jobs:
         run: |
           mkdir -p dist
           zip -j dist/BDr-Translate-TV-v0.4.0-UNSIGNED-test.wgt config.xml index.html style.css app.js relay.js
+      - name: Publish direct unsigned TV package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view tv-v0.4.0 >/dev/null 2>&1 || gh release create tv-v0.4.0 --title "BDr Translate Samsung TV v0.4.0 - PIN-only pairing" --notes "Unsigned Tizen WGT. Sign with Samsung Partner certificate in Apps2Samsung before installation. No IP entry needed; TV discovers iPhone on same local subnet. Experimental build."
+          gh release upload tv-v0.4.0 dist/BDr-Translate-TV-v0.4.0-UNSIGNED-test.wgt --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: BDr-Translate-TV-UNSIGNED-prototype
