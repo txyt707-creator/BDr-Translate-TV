@@ -7,7 +7,7 @@ function setStatus(s){status.textContent=s;}
 function poll(){
  if(busy)return;
  busy=true;
- var url='http://'+host.value.trim().replace(/^https?:\/\//,'').replace(/\/$/,'').replace(/:\\d+$/,'')+':8765/api/subtitle?pin='+encodeURIComponent(code.value.trim())+'&t='+Date.now();
+ var url='http://'+host.value.trim().replace(/^https?:\/\//,'').replace(/\/$/,'').replace(/:\d+$/,'')+':8765/api/subtitle?pin='+encodeURIComponent(code.value.trim())+'&t='+Date.now();
  fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
  .then(function(d){
    setStatus('متصل — انتظار الترجمة');
