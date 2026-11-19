@@ -22,14 +22,14 @@ final class BroadcastSubtitleServer {
             listener.stateUpdateHandler = { [weak self] state in
                 switch state {
                 case .ready: self?.status = "جاهز للاتصال على المنفذ 8766"
-                case .failed(let error): self?.status = "فشل الاتصال: \\(error)"
+                case .failed(let error): self?.status = "فشل الاتصال: \(error)"
                 default: break
                 }
             }
             self.listener = listener
             listener.start(queue: queue)
         } catch {
-            status = "فشل تشغيل خادم البث: \\(error.localizedDescription)"
+            status = "فشل تشغيل خادم البث: \(error.localizedDescription)"
         }
     }
 
@@ -80,7 +80,7 @@ final class BroadcastSubtitleServer {
 
     private func respond(_ connection: NWConnection, code: String, payload: [String: Any]) {
         let body = (try? JSONSerialization.data(withJSONObject: payload)) ?? Data("{}".utf8)
-        let header = "HTTP/1.1 \\(code)\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: \\(body.count)\r\nConnection: close\r\n\r\n"
+        let header = "HTTP/1.1 \(code)\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n"
         var bytes = Data(header.utf8)
         bytes.append(body)
         connection.send(content: bytes, completion: .contentProcessed { _ in connection.cancel() })
