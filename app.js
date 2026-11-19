@@ -6,24 +6,45 @@ function status(s){el('state').textContent=s}
 function focus(n){focused=(n+buttons.length)%buttons.length;el(buttons[focused]).focus()}
 function showPanel(){document.body.classList.add('showpanel');focus(0)}
 function closePanel(){document.body.classList.remove('showpanel');el('play').blur()}
-function pickSource(){if(!sourceList.length){status('لم يتم العثور على HDMI');return}chosen=(chosen+1)%sourceList.length;el('sourceLabel').textContent='المدخل المحدد: HDMI '+sourceList[chosen].number;showHDMI()}
+function pickSource(){
+ if(!sourceList.length){status('لا توجد مداخل HDMI متاحة');refresh();return}
+ if(sourceList.length===1){el('sourceLabel').textContent='الشاشة أبلغت عن HDMI '+sourceList[0].number+' فقط — جارِ فحص المداخل الأخرى';refresh();return}
+ chosen=(chosen+1)%sourceList.length;
+ updateSourceLabel();
+}
+function updateSourceLabel(){
+ var src=sourceList[chosen];
+ if(!src){el('sourceLabel').textContent='لم يتم العثور على HDMI';return}
+ el('sourceLabel').textContent='المدخل المحدد: HDMI '+src.number+
+  ' • '+(chosen+1)+' من '+sourceList.length+' • اضغط «عرض السوني» للتشغيل';
+ status('اخترت HDMI '+src.number)
+}
 function showHDMI(){
  var src=sourceList[chosen];
  if(!src||!(window.tizen&&tizen.tvwindow)){status('تعذر تحديد مدخل HDMI');return}
  try{tizen.tvwindow.setSource(src,function(){
-  try{tizen.tvwindow.show(function(){document.body.classList.add('live');status('HDMI '+src.number);closePanel()},function(e){status('فشل عرض HDMI: '+(e.message||e.name))},['0%','0%','100%','100%'],'MAIN','BEHIND')}catch(e){status('خطأ العرض: '+e.message)}
+  try{tizen.tvwindow.show(function(){document.body.classList.add('live');status('HDMI '+src.number);
+   try{localStorage.setItem('bdr_hdmi',String(src.number))}catch(e){}closePanel()},function(e){status('فشل عرض HDMI: '+(e.message||e.name))},['0%','0%','100%','100%'],'MAIN','BEHIND')}catch(e){status('خطأ العرض: '+e.message)}
  },function(e){status('تعذر تشغيل HDMI: '+(e.message||e.name))})}catch(e){status('خطأ HDMI: '+e.message)}
 }
 function refresh(){
  if(!(window.tizen&&tizen.systeminfo)){el('sourceLabel').textContent='تجربة معاينة — يحتاج تلفزيون Samsung';return}
  try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(info){
-  var all=info.connected||[];
-  sourceList=all.filter(function(s){return s.type==='HDMI'});
-  if(!sourceList.length){el('sourceLabel').textContent='شغّل PS5 وتأكد من HDMI';return}
+  var all=(info.connected||[]).concat(info.disconnected||[]);
+  var seen={};
+  sourceList=all.filter(function(s){
+   if(s.type!=='HDMI')return false;
+   var key=String(s.number);
+   if(seen[key])return false;
+   seen[key]=true;return true;
+  }).sort(function(a,b){return Number(a.number)-Number(b.number)});
+  if(!sourceList.length){el('sourceLabel').textContent='لا توجد منافذ HDMI متاحة — شغّل PS5 ثم جرّب مجددًا';return}
   // Prefer the connected HDMI source, or previous working HDMI 2.
-  var match=sourceList.findIndex(function(s){return s.isConnected});
+  var last='';try{last=localStorage.getItem('bdr_hdmi')||''}catch(e){}
+  var match=sourceList.findIndex(function(s){return String(s.number)===last});
+  if(match<0)match=sourceList.findIndex(function(s){return s.isConnected});
   chosen=match>=0?match:0;
-  el('sourceLabel').textContent='المدخل المحدد: HDMI '+sourceList[chosen].number;
+  updateSourceLabel();
  },function(e){status('خطأ فحص المداخل: '+(e.message||e.name))})}catch(e){status('خطأ: '+e.message)}
 }
 el('play').onclick=showHDMI;
