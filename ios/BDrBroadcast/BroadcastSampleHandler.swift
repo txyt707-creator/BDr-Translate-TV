@@ -12,6 +12,7 @@ final class BroadcastSampleHandler: RPBroadcastSampleHandler {
 
     override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
         shared?.set(true, forKey: "broadcastActive")
+        shared?.set(Date().timeIntervalSince1970, forKey: "broadcastHeartbeat")
         shared?.set("بدأ بث الشاشة. نختبر إمكانية قراءة النص.", forKey: "broadcastStatus")
     }
 
@@ -30,6 +31,7 @@ final class BroadcastSampleHandler: RPBroadcastSampleHandler {
 
     override func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {
         guard sampleBufferType == .video else { return }
+        shared?.set(Date().timeIntervalSince1970, forKey: "broadcastHeartbeat")
         guard !busy, Date().timeIntervalSince(lastScan) >= 1.5 else { return }
         guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lastScan = Date()
