@@ -1,29 +1,77 @@
 (function(){'use strict';
-var host=document.getElementById('relayHost'), code=document.getElementById('relayCode');
-var connect=document.getElementById('relayConnect'), status=document.getElementById('relayStatus'), pinText=document.getElementById('tvPin');
-var last=-1, timer=null, busy=false;
-function generatePin() {
- var bytes=new Uint32Array(1);
- if(window.crypto&&window.crypto.getRandomValues){window.crypto.getRandomValues(bytes);return String(bytes[0]%1000000).padStart(6,'0');}
- return String(Math.floor(Math.random()*1000000)).padStart(6,'0'); // prototype only
+var pinNode=document.getElementById('tvPin'),statusNode=document.getElementById('relayStatus'),dot=document.getElementById('dot');
+var found='',lastRevision=-1,searching=false,active=true,attempt=0,polling=false,watchdog=null;
+function pin(){var a=new Uint32Array(1);if(window.crypto&&crypto.getRandomValues){crypto.getRandomValues(a);return ('00000'+(a[0]%1000000)).slice(-6)}return ('00000'+Math.floor(Math.random()*1000000)).slice(-6)}
+var currentPin=pin();pinNode.textContent=currentPin;
+function message(msg,ok){statusNode.textContent=msg;dot.className='dot'+(ok?' ok':'')}
+function networkIP(done){
+ try{if(window.webapis&&webapis.network&&webapis.network.getIp){var ip=webapis.network.getIp();if(/^\d+\.\d+\.\d+\.\d+$/.test(ip)){done(ip);return}}}catch(e){}
+ if(!(window.tizen&&tizen.systeminfo)){done('');return}
+ var called=false;
+ function finish(ip){if(!called){called=true;done(ip||'')}}
+ try{tizen.systeminfo.getPropertyValue('WIFI_NETWORK',function(x){if(x.ipAddress){finish(x.ipAddress)}else{ethernet()}},ethernet)}catch(e){ethernet()}
+ function ethernet(){try{tizen.systeminfo.getPropertyValue('ETHERNET_NETWORK',function(x){finish(x.ipAddress)},function(){finish('')})}catch(e){finish('')}}
 }
-code.value=generatePin();pinText.textContent=code.value;
-try{host.value=localStorage.getItem('bdr_phone_ip')||'';}catch(e){}
-function setStatus(s){status.textContent=s;}
-function poll(){
- if(busy)return;busy=true;
- var raw=host.value.trim().replace(/^https?:\/\//,'').replace(/\/$/,'').replace(/:\d+$/,'');
- var url='http://'+raw+':8765/api/subtitle?pin='+encodeURIComponent(code.value)+'&t='+Date.now();
- fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.json();})
- .then(function(d){
-  setStatus('متصل بالآيفون — استقبال الترجمة');
-  if(d.revision!==last){last=d.revision;var subtitle=document.getElementById('subtitle');subtitle.textContent='';if(d.text){var span=document.createElement('span');span.textContent=d.text;subtitle.appendChild(span);}}
- }).catch(function(e){setStatus('تعذر الاتصال: '+e.message);})
- .then(function(){busy=false;});
+function check(ip,timeout,callback){
+ var xhr=new XMLHttpRequest(),ended=false;
+ function finish(obj){if(ended)return;ended=true;callback(obj)}
+ xhr.open('GET','http://'+ip+':8765/api/subtitle?pin='+currentPin+'&t='+Date.now(),true);
+ xhr.timeout=timeout;
+ xhr.onreadystatechange=function(){if(xhr.readyState===4){if(xhr.status===200){try{finish(JSON.parse(xhr.responseText))}catch(e){finish(null)}}else finish(null)}};
+ xhr.onerror=function(){finish(null)};xhr.ontimeout=function(){finish(null)};
+ try{xhr.send()}catch(e){finish(null)}
 }
-connect.addEventListener('click',function(){
- if(!/^(\d{1,3}\.){3}\d{1,3}$/.test(host.value.trim())){setStatus('أدخل IP الآيفون مثل 192.168.0.50');return;}
- try{localStorage.setItem('bdr_phone_ip',host.value.trim());}catch(e){}
- if(timer)clearInterval(timer);last=-1;poll();timer=setInterval(poll,350);setStatus('جاري الاتصال بالآيفون...');
-});
+function setText(d){
+ if(d.revision===lastRevision)return;lastRevision=d.revision;
+ var sub=document.getElementById('subtitle');sub.textContent='';
+ if(d.text){var span=document.createElement('span');span.textContent=String(d.text).slice(0,300);sub.appendChild(span)}
+}
+function listen(ip){
+ if(!active)return;
+ found=ip;try{localStorage.setItem('bdr_last_phone',ip)}catch(e){}
+ message('تم الربط بالآيفون',true);
+ if(window.BDrTV){window.BDrTV.status('متصل بالآيفون');}
+ function poll(){
+  if(!found||polling)return;polling=true;
+  check(found,900,function(d){
+   polling=false;if(d&&typeof d.revision==='number'){setText(d);message('متصل — الترجمة جاهزة',true)}
+   else{found='';lastRevision=-1;message('انقطع الاتصال، جاري إعادة البحث…',false);scheduleScan()}
+  });
+ }
+ if(watchdog)clearInterval(watchdog);
+ watchdog=setInterval(poll,400);poll();
+}
+function scheduleScan(){if(!active||searching||found)return;setTimeout(scan,1600)}
+function scan(){
+ if(searching||found||!active)return;
+ searching=true;attempt++;message('جاري العثور على الآيفون تلقائيًا…',false);
+ networkIP(function(tvIP){
+  var match=/^(\d+\.\d+\.\d+)\.\d+$/.exec(tvIP||'');
+  // Typical home /24 networks; network prefix is taken from TV when possible.
+  var prefix=match?match[1]:'192.168.0';
+  var candidates=[],used={};
+  function add(x){if(x&&!used[x]&&x!==tvIP){used[x]=1;candidates.push(x)}}
+  try{var saved=localStorage.getItem('bdr_last_phone');if(saved)add(saved)}catch(e){}
+  for(var n=2;n<255;n++)add(prefix+'.'+n);
+  var cursor=0,inFlight=0,finished=false;
+  function complete(ip,d){
+   inFlight--;
+   if(finished)return;
+   if(d&&typeof d.revision==='number'){finished=true;searching=false;listen(ip);return}
+   launch()
+  }
+  function launch(){
+   if(finished)return;
+   while(inFlight<20&&cursor<candidates.length){
+    (function(ip){inFlight++;check(ip,650,function(d){complete(ip,d)})})(candidates[cursor++])
+   }
+   if(!inFlight&&cursor>=candidates.length){
+    searching=false;message('بانتظار الآيفون — افتح التطبيق واكتب الرمز',false);scheduleScan()
+   }
+  }
+  launch()
+ })
+}
+window.BDrRelay={retry:function(){if(watchdog){clearInterval(watchdog);watchdog=null}found='';lastRevision=-1;searching=false;scan()}};
+scan();
 })();
