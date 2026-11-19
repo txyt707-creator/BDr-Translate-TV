@@ -1,0 +1,26 @@
+name: Build test WGT
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify project files
+        run: |
+          test -f config.xml
+          test -f index.html
+          test -f style.css
+          test -f app.js
+      - name: Create unsigned test package
+        run: |
+          mkdir -p dist
+          zip -j dist/BDr-Translate-TV-v0.1-unsigned.wgt config.xml index.html style.css app.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BDr-Translate-TV-unsigned-WGT
+          path: dist/*.wgt
