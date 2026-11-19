@@ -21,11 +21,28 @@ function updateSourceLabel(){
 }
 function showHDMI(){
  var src=sourceList[chosen];
- if(!src||!(window.tizen&&tizen.tvwindow)){status('تعذر تحديد مدخل HDMI');return}
- try{tizen.tvwindow.setSource(src,function(){
-  try{tizen.tvwindow.show(function(){document.body.classList.add('live');status('HDMI '+src.number);
-   try{localStorage.setItem('bdr_hdmi',String(src.number))}catch(e){}closePanel()},function(e){status('فشل عرض HDMI: '+(e.message||e.name))},['0%','0%','100%','100%'],'MAIN','BEHIND')}catch(e){status('خطأ العرض: '+e.message)}
- },function(e){status('تعذر تشغيل HDMI: '+(e.message||e.name))})}catch(e){status('خطأ HDMI: '+e.message)}
+ if(!src||!(window.tizen&&tizen.tvwindow)){status('تعذر تحديد مدخل HDMI');el('sourceLabel').textContent='المصدر غير متاح على هذا التلفزيون';return}
+ status('جاري عرض HDMI '+src.number+'…');
+ // Clear every opaque background *before* requesting BEHIND video compositing.
+ document.body.classList.add('live');
+ function fail(stage,e){
+  var reason=(e&&(e.message||e.name))||'سبب غير معروف';
+  document.body.classList.remove('live');
+  document.body.classList.add('showpanel');
+  el('sourceLabel').textContent='تعذر '+stage+' HDMI '+src.number+': '+reason;
+  status('خطأ HDMI: '+reason);
+ }
+ function success(){
+  status('تم تشغيل HDMI '+src.number);
+  try{localStorage.setItem('bdr_hdmi',String(src.number))}catch(e){}
+  closePanel();
+ }
+ function runShow(){
+  try{tizen.tvwindow.show(success,function(e){fail('عرض صورة',e)},['0%','0%','100%','100%'],'MAIN','BEHIND')}
+  catch(e){fail('عرض صورة',e)}
+ }
+ try{tizen.tvwindow.setSource(src,runShow,function(e){fail('اختيار',e)})}
+ catch(e){fail('اختيار',e)}
 }
 function refresh(){
  if(!(window.tizen&&tizen.systeminfo)){el('sourceLabel').textContent='تجربة معاينة — يحتاج تلفزيون Samsung';return}
