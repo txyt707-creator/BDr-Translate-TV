@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/bdr-translate/tv" version="0.1.0" viewmodes="maximized">
+  <tizen:application id="BDrTrns01.Translate" package="BDrTrns01" required_version="2.4"/>
+  <content src="index.html"/>
+  <feature name="http://tizen.org/feature/screen.size.all"/>
+  <name>BDr Translate TV Test</name>
+  <description>Local HDMI subtitle overlay feasibility test</description>
+  <tizen:profile name="tv-samsung"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+</widget>
