@@ -6,7 +6,7 @@ on:
       - 'ios/**'
       - '.github/workflows/ios-build.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-ios:
     runs-on: macos-latest
@@ -34,6 +34,12 @@ jobs:
           cp -R build/DerivedData/Build/Products/Release-iphoneos/BDrTranslate.app build/ipa/Payload/
           cd build/ipa
           zip -qr ../BDrTranslate-iOS-v0.1-unsigned.ipa Payload
+      - name: Publish direct IPA download as GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view ios-v0.1.0 >/dev/null 2>&1 || gh release create ios-v0.1.0 --title "BDr Translate iOS v0.1.0 - Experimental" --notes "Unsigned iOS IPA for personal testing. Requires installation/signing with AltStore or Sideloadly. This version sends manual Arabic text; automatic PS5 capture and AI translation are not implemented."
+          gh release upload ios-v0.1.0 build/BDrTranslate-iOS-v0.1-unsigned.ipa --clobber
       - uses: actions/upload-artifact@v4
         with:
           name: BDrTranslate-iOS-v0.1-UNSIGNED-IPA
