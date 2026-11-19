@@ -14,6 +14,10 @@ struct ContentView: View {
     @State private var translating = false
     @State private var activity = "جاهز للتجربة"
 
+    @State private var broadcastStatus = "لم يبدأ بث الشاشة بعد"
+    @State private var capturedText = ""
+    private let shared = UserDefaults(suiteName: "group.com.bdrtranslate.shared")
+
     private let purple = Color(red: 0.55, green: 0.33, blue: 0.96)
 
     var body: some View {
@@ -26,7 +30,7 @@ struct ContentView: View {
                             .font(.title).foregroundStyle(purple)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("BDr Translate").font(.title2.bold())
-                            Text("iPhone v0.2 • الربط السريع")
+                            Text("iPhone v0.3 • اختبار بث الشاشة")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -113,6 +117,28 @@ struct ContentView: View {
                     }
 
                     card {
+                        Text("التقاط شاشة PS5 • تجريبي").font(.headline)
+                        Text("من مركز التحكم، اضغط مطولًا على تسجيل الشاشة واختر BDr Translate. قد يمنع PS Remote Play التقاط الفيديو.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Text(broadcastStatus).font(.callout)
+                            .foregroundStyle(.cyan)
+                        if !capturedText.isEmpty {
+                            Text(capturedText)
+                                .font(.footnote)
+                                .lineLimit(5)
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(.black.opacity(0.25))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            Button("نقل النص المكتشف إلى الترجمة") {
+                                english = capturedText
+                                activity = "تم نقل النص؛ اضغط ترجمة وإرسال"
+                            }
+                            .buttonStyle(.borderedProminent).tint(purple)
+                        }
+                    }
+
+                    card {
                         Text("اختبار عرض الترجمة").font(.headline)
                         Button("إرسال جملة عربية للتلفزيون") {
                             arabic = "اركب السيارة بسرعة! لازم نفلت من الشرطة!"
@@ -126,7 +152,7 @@ struct ContentView: View {
                     }
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "info.circle")
-                        Text("بث PS Remote Play داخل BDr غير متاح في هذه النسخة. التقاط النصوص تلقائيًا من فيديو PS5 يحتاج تطوير مصدر بث متوافق. قراءة الصور وترجمتها الآن ميزة تجريبية مستقلة.")
+                        Text("التقاط ReplayKit تجريبي؛ قد يمنع PS Remote Play تسجيل محتواه. معالجة النص والترجمة والإرسال التلقائي أثناء تشغيل تطبيق آخر ليست متاحة بعد.")
                     }
                     .font(.footnote).foregroundStyle(.secondary)
                     .padding(6)
@@ -135,6 +161,10 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear(perform: refreshBroadcast)
+        .onReceive(Timer.publish(every: 2, on: .main, in: .common).autoconnect()) { _ in
+            refreshBroadcast()
+        }
         .translationTask(translationConfig) { session in
             let source = english.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !source.isEmpty else { return }
@@ -153,6 +183,11 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    private func refreshBroadcast() {
+        broadcastStatus = shared?.string(forKey: "broadcastStatus") ?? "لم يبدأ بث الشاشة بعد"
+        capturedText = shared?.string(forKey: "latestRecognizedText") ?? ""
     }
 
     private func translateEnglish() {
