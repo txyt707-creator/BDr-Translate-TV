@@ -32,7 +32,7 @@ struct ContentView: View {
                             .font(.title).foregroundStyle(purple)
                         VStack(alignment: .leading, spacing: 3) {
                             Text("BDr Translate").font(.title2.bold())
-                            Text("iPhone v0.3.2 • تشخيص ReplayKit")
+                            Text("iPhone v0.4 • ترجمة تلقائية تجريبية")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -126,8 +126,10 @@ struct ContentView: View {
                         Text("التقاط شاشة PS5 • تجريبي").font(.headline)
                         Text("من مركز التحكم، اضغط مطولًا على تسجيل الشاشة واختر BDr Translate. قد يمنع PS Remote Play التقاط الفيديو.")
                             .font(.caption).foregroundStyle(.secondary)
-                        Text(diagnostic).font(.caption).foregroundStyle(.orange)
-                        Button("إعادة فحص اتصال البث") { refreshBroadcast() }
+                        Text("في v0.4 تُنقل الترجمة من إضافة البث إلى التلفزيون مباشرة. فحص App Groups أدناه قد يبقى غير متصل ولا يعني فشل الاتصال الجديد.")
+                            .font(.caption).foregroundStyle(.green)
+                        Text("تشخيص قديم (App Groups): " + diagnostic).font(.caption2).foregroundStyle(.secondary)
+                        Button("فحص App Groups القديم") { refreshBroadcast() }
                             .font(.caption).buttonStyle(.bordered)
                         Text(broadcastStatus).font(.callout)
                             .foregroundStyle(.cyan)
@@ -161,7 +163,7 @@ struct ContentView: View {
                     }
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "info.circle")
-                        Text("التقاط ReplayKit تجريبي؛ قد يمنع PS Remote Play تسجيل محتواه. معالجة النص والترجمة والإرسال التلقائي أثناء تشغيل تطبيق آخر ليست متاحة بعد.")
+                        Text("التقاط ReplayKit تجريبي؛ قد يمنع PS Remote Play تسجيل محتواه. أُضيف مسار تجريبي للترجمة والإرسال من الإضافة أثناء تشغيل تطبيق آخر، ولم يتم التحقق بعد من أن Remote Play يسمح بالتقاط صورته.")
                     }
                     .font(.footnote).foregroundStyle(.secondary)
                     .padding(6)
