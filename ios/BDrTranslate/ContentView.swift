@@ -200,7 +200,7 @@ struct ContentView: View {
             broadcastStatus = "لا يمكن قراءة حالة البث من التخزين المشترك"
             return
         }
-        let probe = "main-\\(UUID().uuidString)"
+        let probe = "main-\(UUID().uuidString)"
         shared.set(probe, forKey: "mainDiagnosticProbe")
         guard shared.string(forKey: "mainDiagnosticProbe") == probe else {
             diagnostic = "فشل اختبار الكتابة والقراءة في App Groups"
@@ -210,9 +210,9 @@ struct ContentView: View {
         let heartbeat = shared.double(forKey: "broadcastHeartbeat")
         let age = heartbeat > 0 ? Date().timeIntervalSince1970 - heartbeat : .infinity
         if age < 12 {
-            diagnostic = "اتصال إضافة ReplayKit ظاهر • آخر إطار منذ \\(Int(max(0, age))) ثانية"
+            diagnostic = "اتصال إضافة ReplayKit ظاهر • آخر إطار منذ \(Int(max(0, age))) ثانية"
         } else if let status {
-            diagnostic = "التخزين المشترك يعمل في التطبيق؛ آخر حالة من الإضافة: \\(status)"
+            diagnostic = "التخزين المشترك يعمل في التطبيق؛ آخر حالة من الإضافة: \(status)"
         } else {
             diagnostic = "التخزين يعمل في التطبيق، لكن لا توجد بيانات من الإضافة. قد يكون App Groups غير مشترك بعد توقيع AltStore."
         }
@@ -238,7 +238,7 @@ struct ContentView: View {
                 } catch {
                     await MainActor.run {
                         translating = false
-                        activity = "فشلت الترجمة عبر الإنترنت: \\(error.localizedDescription). جرّب لاحقًا أو عطّل الخيار للترجمة المحلية."
+                        activity = "فشلت الترجمة عبر الإنترنت: \(error.localizedDescription). جرّب لاحقًا أو عطّل الخيار للترجمة المحلية."
                     }
                 }
             }
