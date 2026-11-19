@@ -9,6 +9,7 @@ final class SubtitleRelay: ObservableObject {
     @Published private(set) var deviceIP = "غير معروف"
 
     private var server: NWListener?
+    private var generation = 0
     private let queue = DispatchQueue(label: "com.bdrtranslate.relay")
     private var pin = ""
     private var text = ""
@@ -19,7 +20,13 @@ final class SubtitleRelay: ObservableObject {
             status = "الرمز يجب أن يتكون من 6 أرقام"
             return
         }
-        server?.cancel()
+        // The PIN field can emit repeated six-digit updates. Never rebind the same port.
+        if pin == newPIN && server != nil { return }
+        generation += 1
+        let currentGeneration = generation
+        let oldServer = server
+        server = nil
+        oldServer?.cancel()
         isRunning = false
         pin = newPIN
         text = ""
@@ -32,12 +39,14 @@ final class SubtitleRelay: ObservableObject {
             }
             listener.stateUpdateHandler = { [weak self] state in
                 DispatchQueue.main.async {
+                    guard self?.generation == currentGeneration else { return }
                     switch state {
                     case .ready:
                         self?.isRunning = true
                         self?.deviceIP = Self.localIPv4() ?? "افحص عنوان Wi-Fi"
                         self?.status = "جاهز — بانتظار التلفزيون"
                     case .failed(let error):
+                        self?.server = nil
                         self?.isRunning = false
                         self?.status = "تعذّر تشغيل الاتصال: \(error.localizedDescription)"
                     case .cancelled:
