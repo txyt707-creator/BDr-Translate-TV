@@ -1,9 +1,24 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BDr Translate TV Test</title><link rel="stylesheet" href="style.css"></head>
-<body>
-  <div id="demo-bg" aria-hidden="true"><div class="fake-world">BDr TRANSLATE</div><div class="fake-hud">HDMI TEST / DEMO</div></div>
-  <div id="top"><span class="brand">BDr <b>Translate</b></span><span id="state">وضع تجريبي — لم يتم تشغيل HDMI</span></div>
-  <div class="controls" id="panel"><h2>BDr Translate — الربط المباشر</h2><p>اختر مدخل HDMI الخاص بالسوني، ثم اضغط عرض HDMI. إذا ظهرت صورة قراند وخلفها النص العربي، فقد نجح اختبار العرض.</p><label>مدخل السوني: <select id="sources"><option value="">جاري فحص المداخل…</option></select></label><div class="buttons"><button id="refresh">تحديث المداخل</button><button id="start">عرض HDMI + الترجمة</button><button id="hide">إخفاء لوحة الإعدادات</button></div><hr><h2>استقبال ترجمة من الجوال — تجربة v0.2</h2><p>افتح BDr Translate على الآيفون، وأدخل رمز التلفزيون الظاهر هنا. بعد تشغيل اتصال الآيفون، انسخ عنوان IP الذي يظهر فيه.</p><label>عنوان IP الآيفون: <input id="relayHost" type="text" placeholder="مثال: 192.168.0.108" /></label> <p>رمز ربط التلفزيون: <strong id="tvPin" style="font-size:36px;color:#ffe28b;letter-spacing:4px">------</strong></p><input id="relayCode" type="hidden" /><div class="buttons"><button id="relayConnect">اتصال بالآيفون واستقبال الترجمة</button></div><p id="relayStatus">غير متصل</p><p id="log">جاهز للاختبار</p></div>
-  <div id="subtitle">لازم نطلع من هنا قبل ما توصل الشرطة!</div>
-  <div id="help">يمين/يسار: التنقل بين الأزرار • OK: اختيار • عند المدخل ↑ ↓: تغيير HDMI • Back: إغلاق اللوحة</div>
-  <script src="app.js"></script><script src="relay.js"></script>
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BDr Translate TV</title><link rel="stylesheet" href="style.css">
+<script type="text/javascript" src="$WEBAPIS/webapis/webapis.js"></script></head>
+<body class="showpanel">
+<div id="demo-bg"><div class="demo-label">BDr Translate</div></div>
+<div id="header"><b>BDr <em>Translate</em></b><span id="state">جاهز للربط</span></div>
+<main id="panel">
+  <div class="eyebrow">BDr TRANSLATE • TV</div>
+  <h1>اربط الآيفون</h1>
+  <div class="pin" id="tvPin" aria-label="رمز الربط">------</div>
+  <p class="intro">افتح BDr Translate على الآيفون واكتب هذا الرمز فقط</p>
+  <div class="connection"><span class="dot" id="dot"></span><span id="relayStatus">جاري تهيئة الشبكة…</span></div>
+  <div class="actions">
+    <button id="play" autofocus>عرض السوني</button>
+    <button id="source">تغيير HDMI</button>
+    <button id="retry">إعادة البحث</button>
+  </div>
+  <p class="source-label" id="sourceLabel">جارِ فحص مداخل HDMI…</p>
+</main>
+<div id="subtitle"></div>
+<div id="hint">OK: إظهار / إخفاء الربط • الأسهم: تغيير الزر • رجوع: إخفاء</div>
+<script src="app.js"></script><script src="relay.js"></script>
 </body></html>
