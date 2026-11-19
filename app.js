@@ -3,7 +3,7 @@
 var sources=[], sentenceIndex=0, focusIndex=0;
 var sentences=['لازم نطلع من هنا قبل ما توصل الشرطة!','انتبه، فيه سيارة ورا المبنى.','يلا بسرعة، الوقت يداهمنا!','هذه ترجمة تجريبية من BDr Translate.'];
 var $=function(id){return document.getElementById(id);};
-var controls=['sources','refresh','start','hide'];
+var controls=['sources','refresh','start','hide','relayHost','relayCode','relayConnect'];
 function log(message){$('log').textContent=message;$('state').textContent=message;}
 function setSentence(){var el=$('subtitle');el.textContent='';var span=document.createElement('span');span.textContent=sentences[sentenceIndex];el.appendChild(span);}
 function focusControl(index){focusIndex=(index+controls.length)%controls.length;var el=$(controls[focusIndex]);if(el){el.focus();}}
@@ -38,11 +38,12 @@ $('hide').addEventListener('click',function(){document.body.classList.remove('sh
 controls.forEach(function(id,i){$(id).addEventListener('focus',function(){focusIndex=i;});});
 document.addEventListener('keydown',function(e){
  var key=e.keyCode,open=document.body.classList.contains('showpanel');
+ if(e.target && e.target.tagName==='INPUT')return;
  if(key===10009||key===27){e.preventDefault();if(open){document.body.classList.remove('showpanel');}else{showPanel();}return;}
  if(!open){if(key===13){e.preventDefault();showPanel();}else if(key===38||key===40){e.preventDefault();sentenceIndex=(sentenceIndex+(key===38?1:-1)+sentences.length)%sentences.length;setSentence();}return;}
  if(key===37||key===39){e.preventDefault();focusControl(focusIndex+(key===39?1:-1));return;}
  if(key===38||key===40){e.preventDefault();if(focusIndex===0){nextSource(key===40?1:-1);}else{focusControl(focusIndex+(key===40?1:-1));}return;}
- if(key===13){e.preventDefault();if(focusIndex===0){focusControl(2);}else{$(controls[focusIndex]).click();}return;}
+ if(key===13){e.preventDefault();if(focusIndex===0){focusControl(2);}else if($(controls[focusIndex]).click){$(controls[focusIndex]).click();}return;}
 });
 setSentence();showPanel();refresh();
 })();
