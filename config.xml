@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/txyt707-creator/BDr-Translate-TV" version="0.3.0" viewmodes="maximized">
-  <tizen:application id="BDrTrns001.Translate" package="BDrTrns001" required_version="2.4"/>
-  <content src="index.html"/>
-  <access origin="*" subdomains="true"/>
-  <feature name="http://tizen.org/feature/screen.size.all"/>
-  <name>BDr Translate TV Test</name>
-  <description>Samsung HDMI video plus Arabic text feasibility test</description>
-  <tizen:profile name="tv-samsung"/>
-  <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
-  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/txyt707-creator/BDr-Translate-TV" version="0.4.0" viewmodes="maximized">
+<tizen:application id="BDrTrns001.Translate" package="BDrTrns001" required_version="2.4"/>
+<content src="index.html"/>
+<access origin="*" subdomains="true"/>
+<feature name="http://tizen.org/feature/screen.size.all"/>
+<name>BDr Translate TV</name>
+<description>Samsung HDMI Arabic subtitles with 6-digit auto-discovery pairing prototype</description>
+<tizen:profile name="tv-samsung"/>
+<tizen:privilege name="http://tizen.org/privilege/tv.window"/>
+<tizen:privilege name="http://tizen.org/privilege/internet"/>
+<tizen:privilege name="http://developer.samsung.com/privilege/network.public"/>
 </widget>
