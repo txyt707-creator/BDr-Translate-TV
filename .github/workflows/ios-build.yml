@@ -33,15 +33,15 @@ jobs:
           mkdir -p build/ipa/Payload
           cp -R build/DerivedData/Build/Products/Release-iphoneos/BDrTranslate.app build/ipa/Payload/
           cd build/ipa
-          zip -qr ../BDrTranslate-iOS-v0.2-unsigned.ipa Payload
+          zip -qr ../BDrTranslate-iOS-v0.3-replaykit-test-unsigned.ipa Payload
       - name: Publish direct IPA download as GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view ios-v0.2.0 >/dev/null 2>&1 || gh release create ios-v0.2.0 --title "BDr Translate iOS v0.2.0 - Pairing + OCR" --notes "Unsigned iOS IPA for personal testing. Requires installation/signing with AltStore or Sideloadly. This version adds PIN-only TV pairing, text recognition from a selected image, and Apple's local translation (language support must be tested). Automatic PS5 capture remains unavailable."
-          gh release upload ios-v0.2.0 build/BDrTranslate-iOS-v0.2-unsigned.ipa --clobber
+          gh release view ios-v0.3-replaykit-test.0 >/dev/null 2>&1 || gh release create ios-v0.3-replaykit-test.0 --title "BDr Translate iOS v0.3-replaykit-test.0 - ReplayKit experimental capture" --notes "Unsigned iOS IPA for personal testing. Requires installation/signing with AltStore or Sideloadly. Experimental ReplayKit extension and OCR. PS Remote Play may block capture; automatic background translation not yet available. Requires compatible signing and App Group entitlement."
+          gh release upload ios-v0.3-replaykit-test.0 build/BDrTranslate-iOS-v0.3-replaykit-test-unsigned.ipa --clobber
       - uses: actions/upload-artifact@v4
         with:
-          name: BDrTranslate-iOS-v0.2-UNSIGNED-IPA
-          path: build/BDrTranslate-iOS-v0.2-unsigned.ipa
+          name: BDrTranslate-iOS-v0.3-replaykit-test-UNSIGNED-IPA
+          path: build/BDrTranslate-iOS-v0.3-replaykit-test-unsigned.ipa
           if-no-files-found: error
