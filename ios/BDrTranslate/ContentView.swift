@@ -1,84 +1,210 @@
 import SwiftUI
+import PhotosUI
+import Vision
+import Translation
+import UIKit
 
 struct ContentView: View {
     @EnvironmentObject private var relay: SubtitleRelay
-    @State private var pinInput: String = ""
-    @State private var subtitle: String = "لازم نطلع من هنا قبل ما توصل الشرطة!"
+    @State private var pinInput = ""
+    @State private var english = ""
+    @State private var arabic = ""
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var translationConfig: TranslationSession.Configuration?
+    @State private var translating = false
+    @State private var activity = "جاهز للتجربة"
+
+    private let purple = Color(red: 0.55, green: 0.33, blue: 0.96)
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.10).ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+        ZStack {
+            Color(red: 0.055, green: 0.052, blue: 0.09).ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "captions.bubble.fill")
+                            .font(.title).foregroundStyle(purple)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("BDr Translate").font(.title2.bold())
+                            Text("iPhone v0.2 • الربط السريع")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.bottom, 8)
+
+                    card {
                         HStack {
-                            Image(systemName: "captions.bubble.fill").font(.title)
-                            VStack(alignment: .leading) {
-                                Text("BDr Translate").font(.title2.bold())
-                                Text("iPhone • Local TV Link v0.1").font(.caption).foregroundStyle(.gray)
+                            Text("ربط الشاشة").font(.title3.bold())
+                            Spacer()
+                            Circle()
+                                .fill(relay.isRunning ? .green : .orange)
+                                .frame(width: 10, height: 10)
+                        }
+                        Text("اكتب كود التلفزيون المكوّن من 6 أرقام. الربط يبدأ تلقائيًا.")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        TextField("000000", text: $pinInput)
+                            .keyboardType(.numberPad)
+                            .textContentType(.oneTimeCode)
+                            .multilineTextAlignment(.center)
+                            .font(.system(size: 38, weight: .bold, design: .rounded))
+                            .tracking(10)
+                            .onChange(of: pinInput) { next in
+                                let fixed = String(next.filter(\.isNumber).prefix(6))
+                                if fixed != pinInput { pinInput = fixed }
+                                if fixed.count == 6 { relay.start(pin: fixed) }
+                            }
+                            .padding(16)
+                            .background(.black.opacity(0.28))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        Text(relay.status)
+                            .font(.callout).foregroundStyle(relay.isRunning ? .green : .orange)
+                    }
+
+                    card {
+                        Text("ترجمة إنجليزية ← عربية").font(.headline)
+                        Text("الصق نصًا إنجليزيًا أو اختر صورة للحوار؛ يقرأ التطبيق النص ويترجمه محليًا إن كانت اللغة مدعومة.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        TextEditor(text: $english)
+                            .frame(height: 95)
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .background(.black.opacity(0.28))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(alignment: .topTrailing) {
+                                if english.isEmpty {
+                                    Text("اكتب الحوار الإنجليزي هنا…")
+                                        .foregroundStyle(.gray)
+                                        .padding(.top, 18).padding(.trailing, 14)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        HStack {
+                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                Label("قراءة من صورة", systemImage: "text.viewfinder")
+                                    .font(.subheadline)
+                            }
+                            .onChange(of: selectedPhoto) { item in
+                                guard let item else { return }
+                                Task { await readImage(item) }
                             }
                             Spacer()
-                        }
-                        card {
-                            Text("ربط التلفزيون").font(.headline)
-                            Text("افتح تطبيق BDr على الشاشة، وخذ رمزها المكوّن من 6 أرقام ثم أدخله هنا.")
-                                .font(.subheadline).foregroundStyle(.gray)
-                            TextField("رمز التلفزيون: 6 أرقام", text: $pinInput)
-                                .keyboardType(.numberPad).textContentType(.oneTimeCode)
-                                .onChange(of: pinInput) { newValue in
-                                    pinInput = String(newValue.filter { $0.isNumber }.prefix(6))
-                                }
-                                .padding(14).background(.black.opacity(0.35)).clipShape(RoundedRectangle(cornerRadius: 12))
                             Button {
-                                relay.start(pin: pinInput)
+                                translateEnglish()
                             } label: {
-                                Label(relay.isRunning ? "إعادة تشغيل الربط" : "تشغيل الاتصال المحلي", systemImage: "wifi")
-                                    .frame(maxWidth: .infinity).padding(12)
+                                Label("ترجمة وإرسال", systemImage: "arrow.up.right")
+                                    .font(.subheadline.bold())
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(Color(red: 0.52, green: 0.33, blue: 0.93))
-                            .disabled(pinInput.count != 6)
-                            Text(relay.status).font(.footnote).foregroundStyle(relay.isRunning ? .green : .orange)
-                            if relay.isRunning {
-                                Text("IP الآيفون: " + relay.deviceIP)
-                                    .font(.callout.monospacedDigit()).textSelection(.enabled)
-                                Text("اكتب IP الآيفون في شاشة التلفزيون مرة واحدة. ابقِ التطبيق مفتوحًا أثناء التجربة.")
-                                    .font(.caption).foregroundStyle(.gray)
-                            }
+                            .disabled(english.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || translating)
                         }
-                        card {
-                            Text("اختبار الترجمة العربية").font(.headline)
-                            TextEditor(text: $subtitle)
-                                .frame(height: 115).scrollContentBackground(.hidden)
-                                .padding(8).background(.black.opacity(0.35)).clipShape(RoundedRectangle(cornerRadius: 12))
-                            Button {
-                                relay.send(subtitle)
-                            } label: {
-                                Label("إرسال النص للتلفزيون", systemImage: "paperplane.fill")
-                                    .frame(maxWidth: .infinity).padding(12)
-                            }.buttonStyle(.borderedProminent)
-                                .tint(Color(red: 0.52, green: 0.33, blue: 0.93))
-                                .disabled(!relay.isRunning)
-                            Button("مسح الترجمة") { relay.send("") }
-                                .foregroundStyle(.gray).disabled(!relay.isRunning)
+                        .tint(purple)
+                        .buttonStyle(.borderedProminent)
+
+                        if !arabic.isEmpty {
+                            Text(arabic)
+                                .font(.title3.weight(.semibold))
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .padding(14)
+                                .background(.black.opacity(0.28))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        Text("نسخة اختبار: إدخال النص يدوي فقط. قراءة PS5 وOCR وAI لم تُفعّل بعد.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        Text(activity)
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    .padding(22)
+
+                    card {
+                        Text("اختبار عرض الترجمة").font(.headline)
+                        Button("إرسال جملة عربية للتلفزيون") {
+                            arabic = "اركب السيارة بسرعة! لازم نفلت من الشرطة!"
+                            relay.send(arabic)
+                            activity = "أُرسلت الجملة التجريبية للتلفزيون"
+                        }
+                        .buttonStyle(.borderedProminent).tint(purple)
+                        .disabled(!relay.isRunning)
+                        Button("مسح النص من الشاشة") { relay.send(""); arabic = "" }
+                            .foregroundStyle(.secondary).disabled(!relay.isRunning)
+                    }
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "info.circle")
+                        Text("بث PS Remote Play داخل BDr غير متاح في هذه النسخة. التقاط النصوص تلقائيًا من فيديو PS5 يحتاج تطوير مصدر بث متوافق. قراءة الصور وترجمتها الآن ميزة تجريبية مستقلة.")
+                    }
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .padding(6)
+                }
+                .padding(20)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .translationTask(translationConfig) { session in
+            let source = english.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !source.isEmpty else { return }
+            do {
+                let result = try await session.translate(source)
+                await MainActor.run {
+                    arabic = result.targetText
+                    translating = false
+                    activity = "تمت الترجمة محليًا"
+                    relay.send(result.targetText)
+                }
+            } catch {
+                await MainActor.run {
+                    translating = false
+                    activity = "تعذرت الترجمة: \(error.localizedDescription). تحقق من توفر الإنجليزية والعربية وحزم اللغات."
                 }
             }
-            .preferredColorScheme(.dark)
-            .navigationBarHidden(true)
+        }
+    }
+
+    private func translateEnglish() {
+        guard !english.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        translating = true
+        activity = "جاري الترجمة المحلية…"
+        if translationConfig == nil {
+            translationConfig = TranslationSession.Configuration(
+                source: Locale.Language(identifier: "en"),
+                target: Locale.Language(identifier: "ar")
+            )
+        } else {
+            translationConfig?.invalidate()
+        }
+    }
+
+    private func readImage(_ item: PhotosPickerItem) async {
+        await MainActor.run { activity = "جاري قراءة نص الصورة…" }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data),
+                  let cgImage = uiImage.cgImage else {
+                await MainActor.run { activity = "تعذر فتح الصورة" }
+                return
+            }
+            let recognized: String = try await Task.detached(priority: .userInitiated) {
+                let req = VNRecognizeTextRequest()
+                req.recognitionLevel = .accurate
+                req.recognitionLanguages = ["en-US"]
+                req.usesLanguageCorrection = true
+                try VNImageRequestHandler(cgImage: cgImage).perform([req])
+                return (req.results ?? [])
+                    .compactMap { $0.topCandidates(1).first?.string }
+                    .joined(separator: " ")
+            }.value
+            await MainActor.run {
+                english = recognized
+                activity = recognized.isEmpty
+                    ? "ما لقيت نص إنجليزي واضحًا في الصورة"
+                    : "تم استخراج النص؛ اضغط «ترجمة وإرسال»"
+            }
+        } catch {
+            await MainActor.run { activity = "خطأ قراءة الصورة: \(error.localizedDescription)" }
         }
     }
 
     @ViewBuilder
-    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 13, content: content)
-            .padding(18)
+            .padding(19)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(red: 0.12, green: 0.12, blue: 0.18))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .background(Color(red: 0.12, green: 0.11, blue: 0.18))
+            .clipShape(RoundedRectangle(cornerRadius: 19))
     }
 }
