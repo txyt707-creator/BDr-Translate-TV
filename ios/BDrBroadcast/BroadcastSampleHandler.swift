@@ -34,10 +34,8 @@ final class BroadcastSampleHandler: RPBroadcastSampleHandler {
         guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lastScan = Date()
         busy = true
-        CVPixelBufferRetain(buffer)
         queue.async { [weak self] in
             defer {
-                CVPixelBufferRelease(buffer)
                 self?.busy = false
             }
             let request = VNRecognizeTextRequest()
