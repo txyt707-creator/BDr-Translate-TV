@@ -1,4 +1,4 @@
-name: Build test WGT
+name: Validate and package unsigned Tizen prototype
 on:
   push:
     branches: [main]
@@ -6,21 +6,34 @@ on:
 permissions:
   contents: read
 jobs:
-  package:
+  prototype:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify project files
+      - name: Validate Tizen manifest and assets
         run: |
-          test -f config.xml
-          test -f index.html
-          test -f style.css
-          test -f app.js
-      - name: Create unsigned test package
+          python3 - <<'PY'
+          import pathlib, xml.etree.ElementTree as ET
+          files = ['config.xml', 'index.html', 'style.css', 'app.js']
+          for p in files:
+              assert pathlib.Path(p).is_file(), f'Missing {p}'
+          root = ET.parse('config.xml').getroot()
+          node = root.find('{http://tizen.org/ns/widgets}application')
+          app = root.find('{http://tizen.org/ns/widgets}never-used')
+          app = root.find('{http://tizen.org/ns/widgets}application')
+          assert app is not None, 'Missing tizen:application'
+          pkg = app.attrib.get('package', '')
+          aid = app.attrib.get('id', '')
+          assert len(pkg) == 10 and pkg.isalnum(), f'Invalid 10-character Tizen package ID: {pkg}'
+          assert aid.startswith(pkg + '.'), f'Invalid application ID: {aid}'
+          assert root.find('{http://www.w3.org/ns/widgets}content').attrib.get('src') == 'index.html'
+          print('Source files and Tizen manifest validation passed.')
+          PY
+      - name: Archive UNSIGNED prototype (not TV-install-ready)
         run: |
           mkdir -p dist
-          zip -j dist/BDr-Translate-TV-v0.1-unsigned.wgt config.xml index.html style.css app.js
+          zip -j dist/BDr-Translate-TV-v0.1.1-UNSIGNED-test.wgt config.xml index.html style.css app.js
       - uses: actions/upload-artifact@v4
         with:
-          name: BDr-Translate-TV-unsigned-WGT
+          name: BDr-Translate-TV-UNSIGNED-prototype
           path: dist/*.wgt
