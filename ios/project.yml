@@ -2,7 +2,7 @@ name: BDrTranslate
 options:
   bundleIdPrefix: com.bdrtranslate
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "18.0"
 settings:
   base:
     SWIFT_VERSION: "5.0"
